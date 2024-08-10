@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/godovasik/amongus/pkg/model"
 	"github.com/google/uuid"
+	_ "github.com/json-iterator/go"
 	_ "github.com/lib/pq"
 	"log"
 	"time"
@@ -22,7 +23,10 @@ func createTable(db *sql.DB) error {
     `)
 	return err
 }
-func createUser(db *sql.DB, user model.User) (sql.Result, error) {
+func createUser(db *sql.DB, firstName, lastName string, age int) (sql.Result, error) {
+	userID := uuid.New().String()
+	timeStamp := time.Now().UnixMilli()
+	user := model.User{userID, firstName, lastName, age, timeStamp}
 
 	com := `
         insert into Users (ID, first_name, last_name, age, recording_date)
@@ -59,26 +63,35 @@ func getUsers(db *sql.DB) ([]model.User, error) {
 	return users, err
 }
 
-func getCom(start int64, minAge int) string {
-	var com string
+func getRows(db *sql.DB, minAge, maxAge int, start, end int64) (*sql.Rows, error) {
+	var (
+		com  string
+		rows *sql.Rows
+		err  error
+	)
+
 	if start == -1 && minAge == -1 {
 		com = `select id, first_name, last_name, age, recording_date from Users`
+		rows, err = db.Query(com)
 	} else if start == -1 {
 		com = `select id, first_name, last_name, age, recording_date from Users
 				where age between $1 and $2`
+		rows, err = db.Query(com, minAge, maxAge)
 	} else if minAge == -1 {
 		com = `select id, first_name, last_name, age, recording_date from Users
-				where recording_date between $3 and $4`
+				where recording_date between $1 and $2`
+		rows, err = db.Query(com, start, end)
+
 	} else {
 		com = `select id, first_name, last_name, age, recording_date from Users
     			where age between $1 and $2 and recording_date between $3 and $4`
+		rows, err = db.Query(com, minAge, maxAge, start, end)
 	}
-	return com
+	return rows, err
 }
 
-func getUsersFromRange(db *sql.DB, start, end int64, minAge, maxAge int) ([]model.User, error) {
-	com := getCom(start, minAge)
-	rows, err := db.Query(com, minAge, maxAge, start, end)
+func getUsersFromRange(db *sql.DB, minAge, maxAge int, start, end int64) ([]model.User, error) {
+	rows, err := getRows(db, minAge, maxAge, start, end)
 	if err != nil {
 		return nil, err
 	}
@@ -100,12 +113,7 @@ func getUsersFromRange(db *sql.DB, start, end int64, minAge, maxAge int) ([]mode
 	return users, err
 }
 
-func main() {
-	userID := uuid.New().String()
-	timeStamp := time.Now().UnixMilli()
-	user := model.User{userID, "qwerty", "asdf", 228, timeStamp}
-	fmt.Println(user)
-
+func initDB() (*sql.DB, error) {
 	connStr := "host=185.221.162.204 port=5432 user=lesha password=amongus dbname=test sslmode=disable"
 
 	db, err := sql.Open("postgres", connStr)
@@ -113,7 +121,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
 
 	err = db.Ping()
 	if err != nil {
@@ -122,16 +129,43 @@ func main() {
 	err = createTable(db)
 	if err != nil {
 		fmt.Println("Error creating table:", err)
+		return nil, err
+	}
+	return db, nil
+}
+
+func printUsers(users []model.User) {
+	for _, user := range users {
+		fmt.Println(user.FirstName, user.LastName, user.Age, user.RecordingDate)
+	}
+}
+
+func main() {
+	db, err := initDB()
+	if err != nil {
 		return
 	}
+	defer db.Close()
 
-	result, err := createUser(db, user)
-	if err != nil {
-		fmt.Println("Error creating user:", err)
-	}
+	//users := []model.User{}
 
-	fmt.Println(result.RowsAffected())
+	//users = append(users, model.User{uuid.New().String(), "Alex", "Joshson", 5, 100})
+	//users = append(users, model.User{uuid.New().String(), "Bob", "Marley", 11, 150})
+	//users = append(users, model.User{uuid.New().String(), "C", "B", 26, 200})
+	//users = append(users, model.User{uuid.New().String(), "Alex", "Joshson", 45, 300})
+	//users = append(users, model.User{uuid.New().String(), "k", "ek", 90, 500})
 
-	fmt.Println(getUsers(db))
-	_, err = db.Exec("DROP TABLE my_table")
+	//result, err := createUser(db, )
+	//if err != nil {
+	//	fmt.Println("Error creating user:", err)
+	//}
+
+	//fmt.Println(result.RowsAffected())
+
+	//users, _ := getUsers(db)
+
+	users, _ := getUsersFromRange(db, 27, 89, -1, 0)
+	printUsers(users)
+
+	//_, err = db.Exec("DROP TABLE users")
 }
