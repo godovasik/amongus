@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/godovasik/amongus/pkg/model"
 	"github.com/google/uuid"
-	_ "github.com/google/uuid"
 	_ "github.com/lib/pq"
 	"log"
 	"time"
@@ -24,6 +23,7 @@ func createTable(db *sql.DB) error {
 	return err
 }
 func createUser(db *sql.DB, user model.User) (sql.Result, error) {
+
 	com := `
         insert into Users (ID, first_name, last_name, age, recording_date)
         values ($1, $2, $3, $4, $5)
@@ -59,6 +59,47 @@ func getUsers(db *sql.DB) ([]model.User, error) {
 	return users, err
 }
 
+func getCom(start int64, minAge int) string {
+	var com string
+	if start == -1 && minAge == -1 {
+		com = `select id, first_name, last_name, age, recording_date from Users`
+	} else if start == -1 {
+		com = `select id, first_name, last_name, age, recording_date from Users
+				where age between $1 and $2`
+	} else if minAge == -1 {
+		com = `select id, first_name, last_name, age, recording_date from Users
+				where recording_date between $3 and $4`
+	} else {
+		com = `select id, first_name, last_name, age, recording_date from Users
+    			where age between $1 and $2 and recording_date between $3 and $4`
+	}
+	return com
+}
+
+func getUsersFromRange(db *sql.DB, start, end int64, minAge, maxAge int) ([]model.User, error) {
+	com := getCom(start, minAge)
+	rows, err := db.Query(com, minAge, maxAge, start, end)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []model.User
+	for rows.Next() {
+		var u model.User
+		err := rows.Scan(&u.ID, &u.FirstName, &u.LastName, &u.Age, &u.RecordingDate)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return users, err
+}
+
 func main() {
 	userID := uuid.New().String()
 	timeStamp := time.Now().UnixMilli()
@@ -83,6 +124,7 @@ func main() {
 		fmt.Println("Error creating table:", err)
 		return
 	}
+
 	result, err := createUser(db, user)
 	if err != nil {
 		fmt.Println("Error creating user:", err)
@@ -91,4 +133,5 @@ func main() {
 	fmt.Println(result.RowsAffected())
 
 	fmt.Println(getUsers(db))
+	_, err = db.Exec("DROP TABLE my_table")
 }
