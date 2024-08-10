@@ -4,28 +4,66 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/godovasik/amongus/pkg/model"
-	"log"
-
+	"github.com/google/uuid"
+	_ "github.com/google/uuid"
 	_ "github.com/lib/pq"
+	"log"
+	"time"
 )
 
 func createTable(db *sql.DB) error {
 	_, err := db.Exec(`
         CREATE TABLE IF NOT EXISTS Users (
-			id VARCHAR(255),
-			first_name VARCHAR(255),
-			last_name VARCHAR(255),
-			age INTEGER,
-			recording_date BIGINT
-		);
+   id VARCHAR(255),
+   first_name VARCHAR(255),
+   last_name VARCHAR(255),
+   age INTEGER,
+   recording_date BIGINT
+  );
     `)
 	return err
 }
+func createUser(db *sql.DB, user model.User) (sql.Result, error) {
+	com := `
+        insert into Users (ID, first_name, last_name, age, recording_date)
+        values ($1, $2, $3, $4, $5)
+    `
+	result, err := db.Exec(com, user.ID, user.FirstName, user.LastName, user.Age, user.RecordingDate)
+	return result, err
+}
+
+func getUsers(db *sql.DB) ([]model.User, error) {
+	com := `
+       select id, first_name, last_name, age, recording_date from Users
+   `
+	rows, err := db.Query(com)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var users []model.User
+	for rows.Next() {
+		var u model.User
+		err := rows.Scan(&u.ID, &u.FirstName, &u.LastName, &u.Age, &u.RecordingDate)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return users, err
+}
 
 func main() {
-	users := []model.User{}
-	users = append(users, model.User{"1", "qwerty", "asdf", 228, 123})
-	fmt.Println(users)
+	userID := uuid.New().String()
+	timeStamp := time.Now().UnixMilli()
+	user := model.User{userID, "qwerty", "asdf", 228, timeStamp}
+	fmt.Println(user)
 
 	connStr := "host=185.221.162.204 port=5432 user=lesha password=amongus dbname=test sslmode=disable"
 
@@ -45,6 +83,12 @@ func main() {
 		fmt.Println("Error creating table:", err)
 		return
 	}
-	//fmt.Println("Successfully created table")
+	result, err := createUser(db, user)
+	if err != nil {
+		fmt.Println("Error creating user:", err)
+	}
 
+	fmt.Println(result.RowsAffected())
+
+	fmt.Println(getUsers(db))
 }
