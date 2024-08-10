@@ -10,5 +10,12 @@ func createUser(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 		user.ID = "fuck you"
+
+	}
+}
+
+func listUsers(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		
 	}
 }
