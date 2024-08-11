@@ -21,7 +21,7 @@ func main() {
 
 	http.HandleFunc("/createUser", api.NewUserHandler(db))
 	http.HandleFunc("/getUsers", api.ListUsersHandler(db))
-	//http.HandleFunc("/getUsersFromRange", api.ListUsersFromRangeHandler(db))
+	http.HandleFunc("/getUsersFromRange", api.ListUsersFromRangeHandler(db))
 
 	fmt.Println("Pognali naxou")
 

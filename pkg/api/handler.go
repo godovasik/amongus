@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"github.com/godovasik/amongus/pkg/storage"
 	"net/http"
 	"strconv"
@@ -81,34 +82,47 @@ func ListUsersHandler(db *sql.DB) http.HandlerFunc {
 
 func getParamsForRange(r *http.Request) (minAge, maxAge *int, start, end *int64, err error) {
 	minAgeStr := r.URL.Query().Get("minAge")
+	minAge = new(int)
 	if minAgeStr == "" {
 		minAge = nil
 	} else {
 		*minAge, err = strconv.Atoi(minAgeStr)
 		if err != nil {
-			return nil, nil, nil, nil, err
+			return nil, nil, nil, nil, fmt.Errorf("invalid minAge: %s", minAgeStr)
 		}
 	}
 
 	maxAgeStr := r.URL.Query().Get("maxAge")
+	maxAge = new(int)
 	if maxAgeStr == "" {
 		maxAge = nil
-	}
-	*maxAge, err = strconv.Atoi(maxAgeStr)
-	if err != nil {
-		maxAge = nil
+	} else {
+		*maxAge, err = strconv.Atoi(maxAgeStr)
+		if err != nil {
+			return nil, nil, nil, nil, fmt.Errorf("invalid maxAge: %s", maxAgeStr)
+		}
 	}
 
 	startStr := r.URL.Query().Get("start")
-	*start, err = strconv.ParseInt(startStr, 10, 64)
-	if err != nil {
+	start = new(int64)
+	if startStr == "" {
 		start = nil
+	} else {
+		*start, err = strconv.ParseInt(startStr, 10, 64)
+		if err != nil {
+			return nil, nil, nil, nil, fmt.Errorf("invalid start: %s", startStr)
+		}
 	}
 
 	endStr := r.URL.Query().Get("end")
-	*end, err = strconv.ParseInt(endStr, 10, 64)
-	if err != nil {
+	end = new(int64)
+	if endStr == "" {
 		end = nil
+	} else {
+		*end, err = strconv.ParseInt(endStr, 10, 64)
+		if err != nil {
+			return nil, nil, nil, nil, fmt.Errorf("invalid end: %s", endStr)
+		}
 	}
 
 	return minAge, maxAge, start, end, nil
@@ -121,13 +135,13 @@ func ListUsersFromRangeHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		minAge, maxAge, start, end, err := getParamsForRange(r)
+		minAgeP, maxAgeP, startP, endP, err := getParamsForRange(r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		users, err := storage.GetUsersFromRange(db, minAge, maxAge, start, end)
+		users, err := storage.GetUsersFromRange(db, minAgeP, maxAgeP, startP, endP)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}

@@ -94,8 +94,8 @@ func GetQuery(minAge, maxAge *int, start, end *int64) (string, []any) {
 	return query, params
 }
 
-func GetUsersFromRange(db *sql.DB, minAge, maxAge int, start, end int64) ([]model.User, error) {
-	query, params := GetQuery(&minAge, &maxAge, &start, &end)
+func GetUsersFromRange(db *sql.DB, minAgeP, maxAgeP *int, startP, endP *int64) ([]model.User, error) {
+	query, params := GetQuery(minAgeP, maxAgeP, startP, endP)
 
 	rows, err := db.Query(query, params...)
 	if err != nil {
