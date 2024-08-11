@@ -1,10 +1,14 @@
 package main
 
 import (
+	"fmt"
+	"github.com/godovasik/amongus/pkg/api"
 	_ "github.com/godovasik/amongus/pkg/api"
 	"github.com/godovasik/amongus/pkg/storage"
 	_ "github.com/json-iterator/go"
 	_ "github.com/lib/pq"
+	"log"
+	"net/http"
 )
 
 func main() {
@@ -15,16 +19,18 @@ func main() {
 	}
 	defer db.Close()
 
-	//http.HandleFunc("/hello", api.NewUserHandler(db))
-	//
-	//fmt.Println("Pognali naxou")
-	//
-	//if err := http.ListenAndServe(":8080", nil); err != nil {
-	//	log.Fatal(err)
-	//}
+	http.HandleFunc("/createUser", api.NewUserHandler(db))
+	http.HandleFunc("/getUsers", api.ListUsersHandler(db))
+	//http.HandleFunc("/getUsersFromRange", api.ListUsersFromRangeHandler(db))
 
-	users, _ := storage.GetUsers(db)
-	storage.PrintUsers(users)
+	fmt.Println("Pognali naxou")
+
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatal(err)
+	}
+
+	//users, _ := storage.GetUsers(db)
+	//storage.PrintUsers(users)
 
 	//users := []model.User{}
 
