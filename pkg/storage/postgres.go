@@ -87,7 +87,7 @@ func GetQuery(minAge, maxAge *int, start, end *int64) (string, []any) {
 	}
 
 	if end != nil {
-		query += fmt.Sprintf(" and recording_date >= $%d", paramCount)
+		query += fmt.Sprintf(" and recording_date <= $%d", paramCount)
 		params = append(params, *end)
 	}
 
@@ -96,6 +96,8 @@ func GetQuery(minAge, maxAge *int, start, end *int64) (string, []any) {
 
 func GetUsersFromRange(db *sql.DB, minAgeP, maxAgeP *int, startP, endP *int64) ([]model.User, error) {
 	query, params := GetQuery(minAgeP, maxAgeP, startP, endP)
+
+	//fmt.Println(query)
 
 	rows, err := db.Query(query, params...)
 	if err != nil {
