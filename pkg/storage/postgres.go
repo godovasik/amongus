@@ -6,6 +6,7 @@ import (
 	"github.com/godovasik/amongus/pkg/model"
 	"github.com/google/uuid"
 	"log"
+	"os"
 	"time"
 )
 
@@ -122,7 +123,14 @@ func GetUsersFromRange(db *sql.DB, minAgeP, maxAgeP *int, startP, endP *int64) (
 }
 
 func InitDB() (*sql.DB, error) {
-	connStr := "host=185.221.162.204 port=5432 user=lesha password=amongus dbname=test sslmode=disable"
+	dbUser := os.Getenv("POSTGRES_USER")
+	dbPassword := os.Getenv("POSTGRES_PASSWORD")
+	dbHost := os.Getenv("POSTGRES_HOST")
+	dbPort := os.Getenv("POSTGRES_PORT")
+	dbName := os.Getenv("POSTGRES_DB")
+
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		dbHost, dbPort, dbUser, dbPassword, dbName)
 
 	db, err := sql.Open("postgres", connStr)
 	//fmt.Println("kek")
